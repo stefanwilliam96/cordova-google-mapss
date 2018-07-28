@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width">
+<script type="text/javascript" src="cordova.js"></script>
+<script type="text/javascript">
+    document.addEventListener("deviceready", function() {
+        var div = document.getElementById("map_canvas");
+
+        // Create a Google Maps native view under the map_canvas div.
+        var map = plugin.google.maps.Map.getMap(div);
+
+        // If you click the button, do something...
+        var button = document.getElementById("button");
+        button.addEventListener("click", function() {
+
+            // Move to the position with animation
+            map.animateCamera({
+                target: {lat: 37.422359, lng: -122.084344},
+                zoom: 17,
+                tilt: 60,
+                bearing: 140,
+                duration: 5000
+            });
+
+            // Add a maker
+            var marker = map.addMarker({
+                position: {lat: 37.422359, lng: -122.084344},
+                title: "Welecome to \n" +
+                "Cordova GoogleMaps plugin for iOS and Android",
+                snippet: "This plugin is awesome!",
+                animation: plugin.google.maps.Animation.BOUNCE
+            });
+
+            // Show the info window
+            marker.showInfoWindow();
+        });
+    }, false);
+
+    function getMyLocation(){
+        // Get the current device location "without map"
+        var option = {
+            enableHighAccuracy: true // use GPS as much as possible
+        };
+
+        plugin.google.maps.LocationService.getMyLocation(option, function(location) {
+
+            // Create a map with the device location
+            var mapDiv = document.getElementById('map_canvas');
+            var map = plugin.google.maps.Map.getMap(mapDiv, {
+                'camera': {
+                    target: location.latLng,
+                    zoom: 10
+                }
+            });
+
+            // Add a marker
+            var text = ["Current your location:\n",
+            "latitude:" + location.latLng.lat.toFixed(3),
+            "longitude:" + location.latLng.lng.toFixed(3),
+            "speed:" + location.speed,
+            "time:" + location.time,
+            "bearing:" + location.bearing].join("\n");
+            
+            var marker = map.addMarker({
+                position: location.latLng,
+                title: text,
+                icon: 'blue',
+                draggable: true
+            });
+            
+            marker.addEventListener(plugin.google.maps.event.MARKER_DRAG_END, function(position) {
+                marker.setTitle(position.toUrlValue());
+                marker.showInfoWindow();
+            });
+
+            marker.showInfoWindow();
+        });
+    }
+
+    function showNearby(){
+        var div = document.getElementById("map_canvas");
+        // Create a Google Maps native view under the map_canvas div.
+        var map = plugin.google.maps.Map.getMap(div);
+        
+        var data = [
+            {
+                position: {lng: 112.752088, lat: -7.257472},
+                title: "Pusat"
+            },
+            {
+                position: {lng: 112.733089, lat: -7.302664},
+                title: "Wonokromo"
+            },
+            {
+                position: {lng: 112.688149, lat: -7.283382},
+                title: "Pradahkali Kendal"
+            }
+        ];
+
+        // Add markers
+        var bounds = [];
+        var markers = data.map(function(options) {
+            bounds.push(options.position);
+            return map.addMarker(options);
+        });
+
+        // Move to the position with animation
+        map.animateCamera({
+            target: bounds,
+            zoom: 10,
+            duration: 2000
+        });
+
+        // open the last marker.
+        markers[markers.length-1].showInfoWindow();
+    }
+    
+    function search(){
+        var mapDiv = document.getElementById("map_canvas");
+        var map = plugin.google.maps.Map.getMap(mapDiv);
+
+        var isRunning = false;
+        var inputField = $("#city").val();
+        
+        if (isRunning) {
+            return;
+        }
+        isRunning = true;
+
+        var dialogDiv = showVirtualDialog(mapDiv, "Just a moment, please ...");
+            setTimeout(function() {
+            mapDiv.removeChild(dialogDiv);
+        }, 3000);
+
+        // Address -> latitude,longitude
+        plugin.google.maps.Geocoder.geocode({
+            "address": inputField
+        }, function(results) {
+            if (results.length) {
+                // Add a marker
+                var marker = map.addMarker({
+                    'position': results[0].position,
+                    'title':  JSON.stringify(results[0].position)
+                });
+
+                // Move to the position
+                map.animateCamera({
+                    'target': results[0].position,
+                    'zoom': 17
+                }, function() {
+                    marker.showInfoWindow();
+                    isRunning = false;
+                });
+            } else {
+                isRunning = false;
+                alert("tidak ditemukan");
+            }
+        });  
+    }
+</script>
+<style type="text/css">
+#map_canvas { /* Must bigger size than 100x100 pixels */
+    width: 100%;
+    height: 500px;
+}
+button {
+    padding: .5em;
+    margin: .5em;
+}
+</style>
+</head>
+<body>
+    <h1>Hello, World!</h1>
+    <div id="map_canvas" class="map">
+        <span class="smallPanel"><input type="text" id="city" value="Kyoto, Japan">
+            <button onclick="search()">Search</button>
+        </span>
+        <button id="button">Animate Zoom</button>
+        <button onclick="getMyLocation()">Get Location</button>
+        <button onclick="showNearby()">Show Nearby</button>
+    </div>
+</body>
+</html>
